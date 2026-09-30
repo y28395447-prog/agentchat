@@ -119,6 +119,18 @@ describe("JeikCode hooks and bridge ↔ real Hub", () => {
     expect(second.from_agent_id).toBe(getAgentByTaskRef(db, "sender-b")?.id)
     expect(second.from_agent_id).not.toBe(from.from_agent_id)
   })
+  it("uses JEIKCODE_SESSION_ID when the host supplies a session-aware MCP environment", async () => {
+    const child = spawn(process.execPath, [resolve("adapters/jeikcode/mcp-bridge.mjs")], { env: { ...environment(), JEIKCODE_SESSION_ID: "env-session" } })
+    children.push(child)
+    const lines: string[] = []
+    createInterface({ input: child.stdout }).on("line", (line) => lines.push(line))
+    child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "test", version: "1" } } })}\n`)
+    await new Promise((resolveResult) => setTimeout(resolveResult, 300))
+    child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "roster", arguments: {} } })}\n`)
+    await new Promise((resolveResult) => setTimeout(resolveResult, 500))
+    expect(lines.join("\n")).not.toContain("缺少 session identity")
+    expect(getAgentByTaskRef(db, "env-session")?.vendor).toBe("jeikcode")
+  })
   it("does not revive retired sessions and emits no token in logs", async () => {
     await hook({ hook_event_name: "SessionStart", session_id: "retired" })
     const target = getAgentByTaskRef(db, "retired")

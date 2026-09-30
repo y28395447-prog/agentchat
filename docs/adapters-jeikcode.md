@@ -44,7 +44,7 @@ Hub 的信任边界仍是本机进程和文件系统。`x-agentchat-session` 是
 | `AGENTCHAT_URL` | Hub 地址，默认 `http://127.0.0.1:4646` |
 | `AGENTCHAT_PORT` | 未设置 URL 时使用的端口 |
 
-Hub 必须先启动以生成 `<AGENTCHAT_HOME>/hub_token`。适配器日志写入 `<AGENTCHAT_HOME>/logs/jeikcode-adapter.log`。
+Hub 必须先启动以生成 `<AGENTCHAT_HOME>/hub_token`。当前 JeikCode upstream 不会向 `scope=session` MCP 子进程传入 `session_id`；需应用 [session spawn 补丁](jeikcode-session-spawn-patch.md) 后 bridge 才能在 hook 身份注入不可用时使用 `JEIKCODE_SESSION_ID`。适配器日志写入 `<AGENTCHAT_HOME>/logs/jeikcode-adapter.log`。
 
 ## 排障
 

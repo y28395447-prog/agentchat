@@ -4,9 +4,11 @@ import { baseUrl, ensureChild, home, log, post } from "./common.mjs"
 
 const root = process.env.AGENTCHAT_HOME || home(process.env)
 const url = baseUrl(process.env)
+const configuredSession = typeof process.env.JEIKCODE_SESSION_ID === "string" && process.env.JEIKCODE_SESSION_ID.trim() ? process.env.JEIKCODE_SESSION_ID.trim() : undefined
 let upstream
 let initParams
 let chain = Promise.resolve()
+if (!configuredSession) log(root, "JeikCode 未提供 JEIKCODE_SESSION_ID；需要 session-aware MCP spawn 支持或有效 hook 注入")
 
 function requestId(value) { return value !== undefined && value !== null }
 function write(value) { process.stdout.write(`${JSON.stringify(value)}\n`) }
@@ -51,7 +53,7 @@ async function forward(message, sessionHint) {
 async function processMessage(message) {
   try {
     if (!record(message)) return
-    const sessionHint = hint(message)
+    const sessionHint = hint(message) ?? configuredSession
     if (message.method === "tools/call") {
       if (!sessionHint) throw new Error("AgentChat MCP 调用缺少 session identity；请确认 JeikCode hooks 已安装")
       await ensureChild(root, url, sessionHint)
