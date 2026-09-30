@@ -4,7 +4,7 @@
 
 ## 状态
 
-Hub 核心 + Web UI + 两个厂商适配器（OpenCode / Claude Code）**均已实现**（Hub：HTTP/WS/MCP、ask 批示、通知中心、审批闸门；Web UI：聊天软件式三栏界面；适配器：进程外插件/hooks + 一键安装器）。spec 见 `docs/superpowers/specs/`。
+- Hub 核心 + Web UI + 三个厂商适配器（OpenCode / Claude Code / JeikCode）均已实现（Hub：HTTP/WS/MCP、ask 批示、通知中心、审批闸门；Web UI：聊天软件式三栏界面；适配器：进程外 pull + 一键安装器）。spec 见 `docs/superpowers/specs/`。
 
 ## Web UI
 
@@ -90,8 +90,7 @@ CI / 管道 / 脚本一律不开。`--no-open` 与 `AGENTCHAT_NO_OPEN` 是同一
 
 ## 适配器
 
-把 OpenCode / Claude Code 接入 Hub —— 两者都是**进程外 pull 适配器**：Hub **不主动推送**，由适配器在 agent
-空闲时**主动拉取**待投递内容（agent 侧无长驻连接可被 Hub 推送）。
+把 OpenCode / Claude Code / JeikCode 接入 Hub —— 三者都是**进程外 pull 适配器**：Hub **不主动推送**，由适配器在 agent 可运行时**主动拉取**待投递内容（JeikCode 在 SessionStart/UserPromptSubmit 注入；MCP `inbox` 也可主动拉取）。
 发送时 Hub 一律为合格收件方建 wake_job（不依赖厂商登记），pull 适配器在认领时投递；
 OpenCode 插件在空闲期间还会**周期轮询**（`AGENTCHAT_POLL_MS`，默认 10s）补拉，故「已经 idle 之后」到达的消息也能被投递。
 
@@ -111,8 +110,9 @@ OpenCode 插件在空闲期间还会**周期轮询**（`AGENTCHAT_POLL_MS`，默
 |---|---|---|
 | OpenCode | `node adapters/opencode/install.mjs` | [docs/adapters-opencode.md](docs/adapters-opencode.md) |
 | Claude Code | `node adapters/claude-code/install.mjs` | [docs/adapters-claude-code.md](docs/adapters-claude-code.md) |
+| JeikCode | `node adapters/jeikcode/install.mjs` | [docs/adapters-jeikcode.md](docs/adapters-jeikcode.md) |
 
-两安装器均**幂等**、改动前自动备份、支持 `--dry-run`（只打印不落盘）与 `--uninstall`（精确移除本适配器条目）。
+三套安装器均**幂等**、改动前自动备份、支持 `--dry-run`（只打印不落盘）与 `--uninstall`（精确移除本适配器条目）。
 OpenCode 的 MCP 条目是**本地 stdio 桥**（`adapters/opencode/mcp-bridge.mjs`），配置里**不含 `{file:}` 引用
 与 token 明文** —— 身份与 token 由桥**逐请求**从磁盘读取；旧版会砖的 `{file:}` 结构会被安装器**自动迁移**。
 桥对每次 `tools/call` 会把插件（`tool.execute.before`）注入的 `x-agentchat-session` **剥离**并转请求头，

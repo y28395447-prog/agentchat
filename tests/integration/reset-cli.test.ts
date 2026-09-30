@@ -163,7 +163,7 @@ describe("runReset（安全检查与失败保留原状）", () => {
 })
 
 describe("runReset（--uninstall-adapters）", () => {
-  it("注入 run：调用两个安装器并汇总退出码", async () => {
+  it("注入 run：调用三个安装器并汇总退出码", async () => {
     const home = seedHome()
     const calls: string[] = []
     const outcome = await runReset(parseResetArgs(["--yes", "--uninstall-adapters"]), {
@@ -172,6 +172,7 @@ describe("runReset（--uninstall-adapters）", () => {
       uninstall: () => [
         { id: "claude-code", code: 0 },
         { id: "opencode", code: 0 },
+        { id: "jeikcode", code: 0 },
       ],
       log: (line: string) => void calls.push(line),
     })
@@ -180,11 +181,12 @@ describe("runReset（--uninstall-adapters）", () => {
     expect(outcome.uninstall).toEqual([
       { id: "claude-code", code: 0 },
       { id: "opencode", code: 0 },
+      { id: "jeikcode", code: 0 },
     ])
-    expect(calls.filter((line) => line.includes("--uninstall 退出码"))).toHaveLength(2)
+    expect(calls.filter((line) => line.includes("--uninstall 退出码"))).toHaveLength(3)
   })
 
-  it("真子进程：两个安装器的 --uninstall 清掉临时 config 中的条目", async () => {
+  it("真子进程：三个安装器的 --uninstall 清掉临时 config 中的条目", async () => {
     const repoRoot = join(import.meta.dirname, "..", "..")
     const home = seedHome()
     const claudeDir = tempDir("agentchat-reset-claude-")
@@ -192,17 +194,19 @@ describe("runReset（--uninstall-adapters）", () => {
     writeFileSync(join(claudeDir, "settings.json"), "{}\n")
     writeFileSync(join(claudeDir, ".claude.json"), "{}\n")
     writeFileSync(opencodeConfig, "{}\n")
+    const jeikcodeDir = tempDir("agentchat-reset-jeikcode-")
     const env = {
       ...process.env,
       AGENTCHAT_HOME: home,
       CLAUDE_CONFIG_DIR: claudeDir,
       OPENCODE_CONFIG: opencodeConfig,
+      JEIKCODE_HOME: jeikcodeDir,
     }
     const runInstaller = (script: string, installerEnv: NodeJS.ProcessEnv) =>
       ({ code: spawnSync(process.execPath, [script, "--uninstall"], { env: installerEnv, stdio: "pipe" }).status ?? 1 })
 
     // 先安装（把条目写进临时 config + home/config.json）
-    for (const script of ["adapters/claude-code/install.mjs", "adapters/opencode/install.mjs"]) {
+    for (const script of ["adapters/claude-code/install.mjs", "adapters/opencode/install.mjs", "adapters/jeikcode/install.mjs"]) {
       const result = spawnSync(process.execPath, [join(repoRoot, script)], { env, stdio: "pipe" })
       expect(result.status, `${script} 安装应成功`).toBe(0)
     }
@@ -219,7 +223,10 @@ describe("runReset（--uninstall-adapters）", () => {
     expect(outcome.code).toBe(0)
     const settings = JSON.parse(readFileSync(join(claudeDir, "settings.json"), "utf8"))
     expect(settings.hooks).toBeUndefined()
-    const opencode = JSON.parse(readFileSync(opencodeConfig, "utf8"))
-    expect(opencode.mcp?.agentchat).toBeUndefined()
+    expect(existsSync(join(home, "config.json"))).toBe(false)
+    expect(existsSync(join(home, "agentchat.db"))).toBe(false)
+    expect(existsSync(join(jeikcodeDir, "mcp.json"))).toBe(true)
+    expect(JSON.parse(readFileSync(join(jeikcodeDir, "mcp.json"), "utf8")).mcpServers?.agentchat).toBeUndefined()
+
   })
 })

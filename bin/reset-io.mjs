@@ -30,6 +30,7 @@ const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 export const INSTALLERS = [
   { id: "claude-code", script: join(PACKAGE_ROOT, "adapters", "claude-code", "install.mjs") },
   { id: "opencode", script: join(PACKAGE_ROOT, "adapters", "opencode", "install.mjs") },
+  { id: "jeikcode", script: join(PACKAGE_ROOT, "adapters", "jeikcode", "install.mjs") },
 ]
 
 /** Hub 数据目录：`AGENTCHAT_HOME`（非空）否则 `~/.agentchat`（与 Hub/安装器一致）。 */
